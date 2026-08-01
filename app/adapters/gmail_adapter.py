@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -66,6 +67,17 @@ def list_unread_messages(service, max_results=10):
         subject = next((h["value"] for h in headers if h["name"] == "Subject"), "(no subject)")
         sender = next((h["value"] for h in headers if h["name"] == "From"), "(unknown sender)")
 
-        emails.append({"subject": subject, "sender": sender})
+        # internalDate is epoch milliseconds, returned by default
+        # regardless of `format` — it's not part of payload/headers.
+        received_at = datetime.fromtimestamp(int(detail["internalDate"]) / 1000)
+
+        emails.append(
+            {
+                "gmail_id": message["id"],
+                "subject": subject,
+                "sender": sender,
+                "received_at": received_at,
+            }
+        )
 
     return emails
