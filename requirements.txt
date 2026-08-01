@@ -1,3 +1,4 @@
+alembic==1.18.5
 certifi==2026.7.22
 cffi==2.1.0
 charset-normalizer==3.4.9
@@ -16,9 +17,12 @@ protobuf==7.35.1
 pyasn1==0.6.4
 pyasn1_modules==0.4.2
 pycparser==3.0
+psycopg2-binary==2.9.12
 pyparsing==3.3.2
+python-dotenv==1.2.2
 requests==2.34.2
 requests-oauthlib==2.0.0
+SQLAlchemy==2.0.51
 typing_extensions==4.16.0
 uritemplate==4.2.0
 urllib3==2.7.0
