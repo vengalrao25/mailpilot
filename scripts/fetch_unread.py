@@ -1,26 +1,36 @@
-from app.adapters.db.email_repository_impl import SqlEmailRepository
-from app.adapters.gmail_adapter import get_gmail_service, list_unread_messages
+from app.adapters.database.repositories import SqlEmailRepository, SqlUserRepository
+from app.adapters.gmail.client import GmailClient
+from app.core.config import get_settings
+from app.core.database import get_sessionmaker
 from app.domain.email import Email
 
 if __name__ == "__main__":
-    service = get_gmail_service()
-    emails = list_unread_messages(service)
-    repository = SqlEmailRepository()
+    settings = get_settings()
+    gmail = GmailClient(
+        token_path=settings.gmail_token_path, credentials_path=settings.gmail_credentials_path
+    )
+    session_factory = get_sessionmaker(settings)
+    email_repository = SqlEmailRepository(session_factory=session_factory)
+    user_repository = SqlUserRepository(session_factory=session_factory)
+
+    user_id = user_repository.get_or_create(gmail.get_user_email())
+    emails = gmail.list_unread_messages()
 
     if not emails:
         print("No unread emails.")
 
     for email in emails:
-        if repository.exists(email["gmail_id"]):
-            print(f"Skipping (already saved): {email['subject']}")
+        if email_repository.exists(email.gmail_id):
+            print(f"Skipping (already saved): {email.subject}")
             continue
 
-        repository.save(
+        email_repository.save(
             Email(
-                gmail_id=email["gmail_id"],
-                subject=email["subject"],
-                sender=email["sender"],
-                received_at=email["received_at"],
+                gmail_id=email.gmail_id,
+                subject=email.subject,
+                sender=email.sender,
+                received_at=email.received_at,
+                user_id=user_id,
             )
         )
-        print(f"Saved: {email['subject']}")
+        print(f"Saved: {email.subject}")

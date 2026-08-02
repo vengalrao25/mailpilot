@@ -1,0 +1,38 @@
+[project]
+name = "mailpilot"
+version = "0.1.0"
+description = "Email orchestrator: reads Gmail, summarizes/classifies with an LLM, notifies via Telegram."
+requires-python = ">=3.10"
+dependencies = [
+    "alembic==1.18.5",
+    "cryptography==50.0.0",
+    "fastapi==0.141.1",
+    "google-api-python-client==2.198.0",
+    "google-auth==2.56.2",
+    "google-auth-httplib2==0.4.0",
+    "google-auth-oauthlib==1.4.0",
+    "langgraph==1.2.10",
+    "langsmith==0.10.15",
+    "openai==2.52.0",
+    "psycopg2-binary==2.9.12",
+    "python-dotenv==1.2.2",
+    "SQLAlchemy==2.0.51",
+    "typing_extensions==4.16.0",
+    "uvicorn==0.52.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "httpx==0.28.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]

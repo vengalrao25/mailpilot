@@ -5,13 +5,13 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from app.adapters.db.models import Base
-from app.adapters.db.session import DATABASE_URL
+from app.adapters.database.models import Base
+from app.core.config import get_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+config.set_main_option("sqlalchemy.url", get_settings().database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
