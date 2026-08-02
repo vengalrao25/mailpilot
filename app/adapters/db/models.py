@@ -1,12 +1,19 @@
-from sqlalchemy import Boolean, DateTime, Integer, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from datetime import datetime
 
-# No user table yet — hardcoded until multi-user lands (see ROADMAP.md).
-DEFAULT_USER_ID = 1
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
     pass
+
+
+class UserORM(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class EmailORM(Base):
@@ -18,4 +25,6 @@ class EmailORM(Base):
     sender: Mapped[str] = mapped_column(String, nullable=False)
     received_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     processed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, default=DEFAULT_USER_ID, nullable=False)
+    summary: Mapped[str | None] = mapped_column(String, nullable=True)
+    category: Mapped[str | None] = mapped_column(String, nullable=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)

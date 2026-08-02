@@ -12,6 +12,9 @@ class SqlEmailRepository:
                 sender=email.sender,
                 received_at=email.received_at,
                 processed=email.processed,
+                summary=email.summary,
+                category=email.category,
+                user_id=email.user_id,
             )
             session.add(row)
             session.commit()

@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -31,22 +31,46 @@ def get_gmail_service():
     return build("gmail", "v1", credentials=creds)
 
 
-def list_unread_messages(service, max_results=10):
+def get_user_email(service):
+    profile = service.users().getProfile(userId="me").execute()
+    return profile["emailAddress"]
+
+
+def list_unread_messages(service, after=None, before=None):
+    """List unread messages, optionally within a UTC [after, before) window.
+
+    Gmail's own after:/before: query operators are used as a coarse,
+    over-inclusive pre-filter (cheap — narrows what we even fetch), but
+    Gmail's date-operator timezone handling is inconsistent, so the real
+    boundary check happens in Python against `received_at`, which is
+    computed precisely from `internalDate` (epoch ms, unambiguous).
+    """
+    query = "is:unread"
+    if after is not None:
+        query += f" after:{after.strftime('%Y/%m/%d')}"
+    if before is not None:
+        query += f" before:{before.strftime('%Y/%m/%d')}"
+
     # "me" refers to whichever account authorized via OAuth — there's no
     # user table yet, so this is the only identity the app has.
     # list() only returns message IDs, not content — Gmail keeps listing
     # cheap and makes you fetch each message separately for details.
-    response = (
-        service.users()
-        .messages()
-        .list(userId="me", q="is:unread", maxResults=max_results)
-        .execute()
-    )
-
-    messages = response.get("messages", [])
+    message_ids = []
+    page_token = None
+    while True:
+        response = (
+            service.users()
+            .messages()
+            .list(userId="me", q=query, pageToken=page_token)
+            .execute()
+        )
+        message_ids.extend(m["id"] for m in response.get("messages", []))
+        page_token = response.get("nextPageToken")
+        if not page_token:
+            break
 
     emails = []
-    for message in messages:
+    for message_id in message_ids:
         # format="metadata" + metadataHeaders avoids pulling the full
         # MIME body (base64-encoded blob) when we only need two headers.
         detail = (
@@ -54,7 +78,7 @@ def list_unread_messages(service, max_results=10):
             .messages()
             .get(
                 userId="me",
-                id=message["id"],
+                id=message_id,
                 format="metadata",
                 metadataHeaders=["Subject", "From"],
             )
@@ -69,14 +93,20 @@ def list_unread_messages(service, max_results=10):
 
         # internalDate is epoch milliseconds, returned by default
         # regardless of `format` — it's not part of payload/headers.
-        received_at = datetime.fromtimestamp(int(detail["internalDate"]) / 1000)
+        received_at = datetime.fromtimestamp(int(detail["internalDate"]) / 1000, tz=timezone.utc)
+
+        if after is not None and received_at < after:
+            continue
+        if before is not None and received_at >= before:
+            continue
 
         emails.append(
             {
-                "gmail_id": message["id"],
+                "gmail_id": message_id,
                 "subject": subject,
                 "sender": sender,
                 "received_at": received_at,
+                "label_ids": detail.get("labelIds", []),
             }
         )
 
